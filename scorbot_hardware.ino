@@ -3,38 +3,52 @@
  */
 
 #include <ros.h>
-#include <std_msgs/String.h>
-#include <rosserial_arduino/Test.h>
-
+#include <std_msgs/Float32.h>
+#include <read_joint_states.h>
+#include <write_joint_cmd.h>
 ros::NodeHandle  nh;
-using rosserial_arduino::Test;
+using rosserial_arduino::read_joint_states;
+using rosserial_arduino::write_joint_cmd;
 
-int i;
-void callback(const Test::Request & req, Test::Response & res){
-  if((i++)%2)
-    res.output = "hello";
-  else
-    res.output = "world";
+float joint_angle_deg[5] = {0,0,0,0,0};
+float motor_commands[5] = {0,0,0,0,0};
+
+
+void read_joint_cb(const read_joint_states::Request & req, read_joint_states::Response & res)
+{
+  res.joint0 = joint_angle_deg[0];
+  res.joint1 = joint_angle_deg[1];
+  res.joint2 = joint_angle_deg[2];
+  res.joint3 = joint_angle_deg[3];
+  res.joint4 = joint_angle_deg[4];
+
 }
 
-ros::ServiceServer<Test::Request, Test::Response> server("test_srv",&callback);
+void write_cmd_cb(const write_joint_cmd::Request & req, write_joint_cmd::Response & res)
+{ 
+  motor_commands[0] = req.cmd0;
+  motor_commands[1] = req.cmd1;
+  motor_commands[2] = req.cmd2;
+  motor_commands[3] = req.cmd3;
+  motor_commands[4] = req.cmd4;
 
-std_msgs::String str_msg;
-ros::Publisher chatter("chatter", &str_msg);
+}
 
-char hello[13] = "hello world!";
+
+ros::ServiceServer<read_joint_states::Request, read_joint_states::Response> read_server("read_joint_states",&read_joint_cb);
+ros::ServiceServer<write_joint_cmd::Request, write_joint_cmd::Response> write_server("write_joint_cmd",&write_cmd_cb);
+
 
 void setup()
 {
   nh.initNode();
-  nh.advertiseService(server);
-  nh.advertise(chatter);
+  nh.advertiseService(read_server);
+  nh.advertiseService(write_server);
 }
 
 void loop()
 {
-  str_msg.data = hello;
-  chatter.publish( &str_msg );
+
   nh.spinOnce();
   delay(10);
 }
